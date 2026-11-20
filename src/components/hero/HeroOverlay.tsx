@@ -8,10 +8,11 @@ export interface HeroOverlayProps {
   /**
    * 'overlay': Desktop/Tablet (>=768px) — sobreposto no canto inferior esquerdo
    *            com gradiente protetor localizado, preservando rosto, óculos e logo.
-   * 'stacked': Mobile (<768px) — renderizado em área dedicada abaixo do vídeo,
-   *            evitando 100% de sobreposição sobre rosto, mãos ou armação.
+   * 'mobile-fullscreen': Mobile (<768px) — sobreposto na base do Hero full-screen (100svh)
+   *                      com gradiente escuro sutil inferior, preservando a zona superior
+   *                      do rosto/óculos e deixando margem segura para a cápsula de scroll.
    */
-  layout?: 'overlay' | 'stacked';
+  layout?: 'overlay' | 'mobile-fullscreen';
   /** Modo estático (prefers-reduced-motion / economia de dados / erro): exibe ambos os elementos essenciais sem depender de scroll. */
   isStatic?: boolean;
 }
@@ -42,18 +43,25 @@ export const HeroOverlay: React.FC<HeroOverlayProps> = ({
   const finalTranslateY = (1 - finalOpacity) * 24;
   const isCtaInteractive = finalOpacity > 0.25;
 
-  // Intensidade do gradiente protetor localizado (somente no modo overlay quando há texto visível)
+  // Intensidade do gradiente protetor localizado (quando há texto visível)
   const scrimOpacity = Math.max(introOpacity, finalOpacity);
 
-  // Modo Mobile Dedicado (abaixo do vídeo — zero texto sobre o rosto ou óculos)
-  if (layout === 'stacked') {
+  // Modo Mobile Full-Screen (< 768px): Overlay na base com gradiente escuro sutil inferior
+  if (layout === 'mobile-fullscreen') {
     return (
-      <div className="relative w-full px-5 sm:px-8 pt-5 pb-4">
-        <div className="relative min-h-[168px] flex flex-col justify-center">
-          {/* Ato 1 — INÍCIO (Mobile) */}
+      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-end px-5 sm:px-8 pb-[max(4.75rem,calc(env(safe-area-inset-bottom)+4.25rem))]">
+        {/* Gradiente escuro sutil apenas no terço inferior para proteger a leitura sem cobrir o rosto/óculos */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-[54%] bg-gradient-to-t from-obsidian/95 via-obsidian/65 to-transparent transition-opacity duration-200"
+          style={{ opacity: Math.min(1, Math.max(0.35, scrimOpacity * 0.98)) }}
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 w-full max-w-md min-h-[148px] flex items-end">
+          {/* Ato 1 — INÍCIO (Mobile Full-Screen) */}
           {!isStatic && (
             <div
-              className="absolute inset-0 flex flex-col justify-center space-y-2.5 will-change-transform"
+              className="absolute inset-x-0 bottom-0 space-y-2 will-change-transform"
               style={{
                 opacity: introOpacity,
                 transform: `translate3d(0, ${introTranslateY}px, 0)`,
@@ -62,26 +70,26 @@ export const HeroOverlay: React.FC<HeroOverlayProps> = ({
               aria-hidden={introOpacity < 0.05}
             >
               <div className="flex items-center gap-2">
-                <span className="h-[1px] w-7 bg-azure-light/80" />
+                <span className="h-[1px] w-7 bg-azure-light/85" />
                 <span className="text-[10px] uppercase tracking-[0.22em] text-azure-light font-semibold">
                   Óticas Ipanema
                 </span>
               </div>
 
-              <h1 className="font-display text-[1.75rem] leading-[1.12] font-light text-pure tracking-tight text-balance">
+              <h1 className="font-display text-[1.85rem] xs:text-[2.1rem] leading-[1.08] font-light text-pure tracking-tight text-balance drop-shadow-sm">
                 Seu olhar merece uma{' '}
                 <span className="italic text-azure-light font-normal">nova perspectiva.</span>
               </h1>
 
-              <p className="font-sans text-body-sm text-mist/85 font-light leading-relaxed">
+              <p className="font-sans text-body-sm text-mist/90 font-light leading-relaxed">
                 Estilo e personalidade em cada detalhe.
               </p>
             </div>
           )}
 
-          {/* Ato 3 — FINAL (Mobile) */}
+          {/* Ato 3 — FINAL (Mobile Full-Screen) */}
           <div
-            className={`${isStatic ? 'relative' : 'absolute inset-0'} flex flex-col justify-center space-y-3 will-change-transform`}
+            className={`${isStatic ? 'relative' : 'absolute inset-x-0 bottom-0'} space-y-3 will-change-transform`}
             style={{
               opacity: finalOpacity,
               transform: `translate3d(0, ${finalTranslateY}px, 0)`,
@@ -90,24 +98,24 @@ export const HeroOverlay: React.FC<HeroOverlayProps> = ({
             aria-hidden={finalOpacity < 0.05}
           >
             <div className="flex items-center gap-2">
-              <span className="h-[1px] w-7 bg-azure-light/80" />
+              <span className="h-[1px] w-7 bg-azure-light/85" />
               <span className="text-[10px] uppercase tracking-[0.22em] text-azure-light font-semibold">
                 Óticas Ipanema
               </span>
             </div>
 
             {isStatic ? (
-              <h1 className="font-display text-[1.85rem] leading-[1.12] font-light text-pure tracking-tight">
+              <h1 className="font-display text-[1.95rem] xs:text-[2.2rem] leading-[1.08] font-light text-pure tracking-tight drop-shadow-sm">
                 Encontre o <span className="italic text-azure-light font-normal">seu estilo.</span>
               </h1>
             ) : (
-              <h2 className="font-display text-[1.85rem] leading-[1.12] font-light text-pure tracking-tight">
+              <h2 className="font-display text-[1.95rem] xs:text-[2.2rem] leading-[1.08] font-light text-pure tracking-tight drop-shadow-sm">
                 Encontre o <span className="italic text-azure-light font-normal">seu estilo.</span>
               </h2>
             )}
 
             {isStatic && (
-              <p className="font-sans text-body-sm text-mist/85 font-light leading-relaxed">
+              <p className="font-sans text-body-sm text-mist/90 font-light leading-relaxed">
                 Seu olhar merece uma nova perspectiva. Estilo e personalidade em cada detalhe.
               </p>
             )}
@@ -121,7 +129,7 @@ export const HeroOverlay: React.FC<HeroOverlayProps> = ({
                 <Button
                   variant="secondary"
                   size="md"
-                  className="group gap-2.5 tracking-wider text-xs uppercase px-6 py-3 shadow-subtle-azure"
+                  className="group gap-2.5 tracking-wider text-xs uppercase px-6 py-3.5 shadow-elevated-dark"
                 >
                   <span>EXPLORAR COLEÇÕES</span>
                   <ArrowRight

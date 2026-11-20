@@ -43,6 +43,7 @@ Substituição semântica avaliada com hierarquia editorial e contraste WCAG AA/
 | **Etapa 3** | Refinamento Visual (Preto Premium `#101216` / Grafite `#1C2229`) e Integração de Imagens Editoriais WebP | `APROVADA` |
 | **Etapa 4** | Refinamento Final do Hero (Cápsula "ROLE PARA EXPLORAR", Remoção do HUD de Debug) e Crédito NEWNEO no Footer | `APROVADA` |
 | **Experimento 3D** | Cinematic 3D Scroll Reveal expandido de forma leve para todas as seções pós-Hero (`#sobre`, `#colecoes`, `#estilo`, `#atendimento`, `#conversao`) | `APROVADA` |
+| **Hero Mobile 100svh** | Hero Cinematográfico Mobile Full-Screen (`100svh`) com `object-position` dinâmico (`38% -> 58%`) | `APROVADA` |
 | **Publicação Git** | Repositório independente inicializado e enviado para `https://github.com/neol10/otica-ipanema.git` (pronto para Vercel) | `CONCLUIDA` |
 
 ---

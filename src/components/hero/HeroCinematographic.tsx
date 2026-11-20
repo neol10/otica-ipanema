@@ -27,6 +27,28 @@ function getHeroScrollDistance(): number {
 /** Máximo de recarregamentos do vídeo após erro de mídia antes de cair no modo estático. */
 const MAX_MEDIA_RETRIES = 2;
 
+/**
+ * Enquadramento dinâmico horizontal (`object-position`) para o Hero Mobile Full-Screen (< 768px),
+ * sincronizado 100% com o progresso do scroll sem interferir no seeking do vídeo:
+ * - Início (0.00 -> 0.25): 38% (centraliza o rosto da modelo e os óculos no terço esquerdo-central do 16:9).
+ * - Meio   (0.25 -> 0.55): 38% -> 46% (acompanha suavemente o movimento da mão retirando os óculos).
+ * - Final  (0.55 -> 1.00): 46% -> 58% (centraliza a ponte e a lente principal da armação azul em destaque).
+ */
+function getMobileObjectPosition(progress: number): string {
+  const p = Math.max(0, Math.min(1, progress));
+  let xPct = 38;
+  if (p <= 0.25) {
+    xPct = 38;
+  } else if (p <= 0.55) {
+    const t = (p - 0.25) / 0.3;
+    xPct = 38 + t * 8; // 38% -> 46%
+  } else {
+    const t = (p - 0.55) / 0.45;
+    xPct = 46 + t * 12; // 46% -> 58%
+  }
+  return `${xPct.toFixed(1)}% 38%`;
+}
+
 type VideoWithRVFC = HTMLVideoElement & {
   requestVideoFrameCallback?: (cb: () => void) => number;
   cancelVideoFrameCallback?: (id: number) => void;
@@ -194,20 +216,19 @@ export const HeroCinematographic: React.FC = () => {
       <section
         id="hero-cinematografico"
         aria-label="Apresentação Óticas Ipanema"
-        className="relative w-full min-h-[88vh] bg-navy-dark flex flex-col justify-center overflow-hidden pt-20"
+        className="relative w-full h-[100svh] min-h-[100svh] bg-navy-dark flex flex-col justify-center overflow-hidden"
       >
         {isMobile ? (
-          <div className="w-full flex flex-col justify-center gap-2 pb-10">
-            <div className="relative w-full aspect-video bg-navy-deep overflow-hidden border-y border-azure/25">
-              <img
-                src={finalPosterSrc}
-                alt="Óticas Ipanema — Armação em destaque"
-                className="w-full h-full object-cover"
-                fetchPriority="high"
-              />
-            </div>
-            <HeroOverlay progress={1} layout="stacked" isStatic />
-          </div>
+          <>
+            <img
+              src={finalPosterSrc}
+              alt="Óticas Ipanema — Armação em destaque"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ objectPosition: getMobileObjectPosition(1) }}
+              fetchPriority="high"
+            />
+            <HeroOverlay progress={1} layout="mobile-fullscreen" isStatic />
+          </>
         ) : (
           <>
             <img
@@ -223,68 +244,76 @@ export const HeroCinematographic: React.FC = () => {
     );
   }
 
+  const mobileObjPos = getMobileObjectPosition(scrollProgress);
+
   return (
     <div
       ref={trackRef}
       id="hero-cinematografico"
       aria-label="Experiência Cinematográfica Óticas Ipanema"
       className="relative w-full"
-      style={{ height: `calc(100vh + ${scrollDistance}px)` }}
+      style={{ height: `calc(100svh + ${scrollDistance}px)` }}
     >
-      {/* Palco Sticky: 100dvh estável sem travar a página */}
-      <div className="sticky top-0 w-full h-screen min-h-[100dvh] bg-navy-dark overflow-hidden select-none">
+      {/* Palco Sticky: 100svh no mobile e 100dvh no desktop, estável sem travar a página */}
+      <div className="sticky top-0 w-full h-[100svh] md:h-screen md:min-h-[100dvh] bg-navy-dark overflow-hidden select-none">
         {isMobile ? (
-          /* COMPOSIÇÃO MOBILE PREMIUM (< 768px): Vídeo 16:9 íntegro + Área de Narrativa separada */
-          <div className="relative w-full h-full flex flex-col justify-between pt-[72px] pb-5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-navy-soft/45 via-navy-deep to-navy-dark">
-            {/* Área de Mídia 16:9 sem cortes no rosto, óculos ou mãos */}
-            <div className="relative w-full flex-1 flex items-center justify-center px-3 sm:px-6 min-h-0">
-              <div className="relative w-full max-w-[540px] aspect-video rounded-sm overflow-hidden border border-azure/30 shadow-elevated-navy bg-navy-deep">
-                {/* Poster inicial (evita flash escuro antes do primeiro frame) */}
-                <img
-                  src={posterSrc}
-                  alt="Óticas Ipanema — Modelo usando óculos"
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-luxury pointer-events-none ${
-                    isVideoReady ? 'opacity-0' : 'opacity-100'
-                  }`}
-                  fetchPriority="high"
-                />
+          /* COMPOSIÇÃO MOBILE FULL-SCREEN (< 768px): 100svh tela cheia com object-position dinâmico */
+          <div className="relative w-full h-full flex items-center justify-center bg-navy-dark">
+            {/* Poster inicial (evita flash escuro antes do primeiro frame) */}
+            <img
+              src={posterSrc}
+              alt="Óticas Ipanema — Modelo usando óculos"
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-luxury pointer-events-none ${
+                isVideoReady ? 'opacity-0' : 'opacity-100'
+              }`}
+              style={{ objectPosition: getMobileObjectPosition(0) }}
+              fetchPriority="high"
+            />
 
-                {/* Vídeo otimizado Mobile (854x480, GOP 6, sem B-frames) */}
-                <video
-                  key={videoSrc}
-                  ref={videoRef}
-                  src={videoSrc}
-                  playsInline
-                  muted
-                  preload="auto"
-                  onLoadedMetadata={() => seek.flush()}
-                  onLoadedData={handleLoadedData}
-                  onSeeked={handleSeeked}
-                  onError={handleVideoError}
-                  {...debug.eventProps}
-                  className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${
-                    isVideoReady ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  aria-hidden="true"
-                />
+            {/* Vídeo otimizado Mobile (854x480, GOP 6, sem B-frames) preenchendo 100svh com enquadramento dinâmico */}
+            <video
+              key={videoSrc}
+              ref={videoRef}
+              src={videoSrc}
+              playsInline
+              muted
+              preload="auto"
+              onLoadedMetadata={() => seek.flush()}
+              onLoadedData={handleLoadedData}
+              onSeeked={handleSeeked}
+              onError={handleVideoError}
+              {...debug.eventProps}
+              style={{ objectPosition: mobileObjPos }}
+              className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${
+                isVideoReady ? 'opacity-100' : 'opacity-0'
+              }`}
+              aria-hidden="true"
+            />
 
-                {/* Poster final no término do scroll */}
-                <img
-                  src={finalPosterSrc}
-                  alt="Óticas Ipanema — Armação em destaque"
-                  className="absolute inset-0 z-15 w-full h-full object-cover pointer-events-none transition-opacity duration-300"
-                  style={{ opacity: scrollProgress >= 0.985 ? 1 : 0 }}
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
+            {/* Poster final no término do scroll */}
+            <img
+              src={finalPosterSrc}
+              alt="Óticas Ipanema — Armação em destaque"
+              className="absolute inset-0 z-15 w-full h-full object-cover pointer-events-none transition-opacity duration-300"
+              style={{
+                opacity: scrollProgress >= 0.985 ? 1 : 0,
+                objectPosition: getMobileObjectPosition(1),
+              }}
+              aria-hidden="true"
+            />
 
-            {/* Área Dedicada de Textos e CTA (0% de sobreposição sobre o vídeo) */}
-            <HeroOverlay progress={scrollProgress} layout="stacked" />
-
-            {/* Indicador de Rolagem Inicial em Cápsula Premium (linha dedicada, respeita safe-area e nunca bloqueia toque/scroll) */}
+            {/* Vinheta superior sutil apenas para garantir legibilidade perfeita do Header sobreposto */}
             <div
-              className="w-full flex items-center justify-center pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-opacity duration-300 pointer-events-none"
+              className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-obsidian/70 via-obsidian/25 to-transparent z-15 pointer-events-none"
+              aria-hidden="true"
+            />
+
+            {/* Overlay de Textos e CTA sobreposto na base com gradiente escuro sutil */}
+            <HeroOverlay progress={scrollProgress} layout="mobile-fullscreen" />
+
+            {/* Indicador de Rolagem Inicial em Cápsula Premium (respeita safe-area-inset-bottom e nunca bloqueia toque/scroll) */}
+            <div
+              className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center pb-[max(0.85rem,env(safe-area-inset-bottom))] transition-opacity duration-300 pointer-events-none"
               style={{
                 opacity: Math.max(0, Math.min(1, 1 - scrollProgress * 6.5)),
               }}
